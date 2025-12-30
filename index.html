@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube 轉 MP3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .input-group input::placeholder {
+            color: #aaa;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status.success {
+            display: block;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #1565c0;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .video-info {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .video-info.show {
+            display: block;
+        }
+
+        .video-info img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .video-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .video-info p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .download-btn:hover {
+            background: #43a047;
+        }
+
+        .features {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .features h4 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .feature-item span {
+            font-size: 1.2rem;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎵</div>
+            <h1>YouTube 轉 MP3</h1>
+            <p>快速將 YouTube 影片轉換為高品質 MP3 音訊</p>
+        </div>
+
+        <div class="input-group">
+            <label for="url">YouTube 影片連結</label>
+            <input
+                type="text"
+                id="url"
+                placeholder="請貼上 YouTube 網址，例如：https://www.youtube.com/watch?v=..."
+            >
+        </div>
+
+        <button class="btn" id="convertBtn" onclick="convertToMp3()">
+            開始轉換
+        </button>
+
+        <div class="status" id="status"></div>
+
+        <div class="video-info" id="videoInfo">
+            <img id="thumbnail" src="" alt="影片縮圖">
+            <h3 id="videoTitle"></h3>
+            <p id="videoDuration"></p>
+            <a href="#" class="download-btn" id="downloadBtn" download>
+                下載 MP3
+            </a>
+        </div>
+
+        <div class="features">
+            <h4>功能特色</h4>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span>⚡</span>
+                    <p>快速轉換</p>
+                </div>
+                <div class="feature-item">
+                    <span>🎧</span>
+                    <p>高品質音訊</p>
+                </div>
+                <div class="feature-item">
+                    <span>📱</span>
+                    <p>支援手機</p>
+                </div>
+                <div class="feature-item">
+                    <span>💰</span>
+                    <p>完全免費</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>僅供個人學習使用，請尊重版權</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';  // 同源，使用相對路徑
+
+        // 從 YouTube URL 提取影片 ID
+        function extractVideoId(url) {
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+                /youtube\.com\/shorts\/([^&\n?#]+)/
+            ];
+
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        // 驗證 URL
+        function isValidYoutubeUrl(url) {
+            return extractVideoId(url) !== null;
+        }
+
+        // 顯示狀態訊息
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+
+            if (type === 'loading') {
+                status.innerHTML = '<span class="spinner"></span>' + message;
+            } else {
+                status.textContent = message;
+            }
+        }
+
+        // 隱藏狀態
+        function hideStatus() {
+            const status = document.getElementById('status');
+            status.className = 'status';
+            status.style.display = 'none';
+        }
+
+        // 格式化時長
+        function formatDuration(seconds) {
+            if (!seconds) return '';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 顯示影片資訊
+        function showVideoInfo(info, downloadUrl) {
+            const videoInfo = document.getElementById('videoInfo');
+            const thumbnail = document.getElementById('thumbnail');
+            const videoTitle = document.getElementById('videoTitle');
+            const videoDuration = document.getElementById('videoDuration');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            thumbnail.src = info.thumbnail;
+            thumbnail.onerror = function() {
+                this.src = `https://img.youtube.com/vi/${info.id}/hqdefault.jpg`;
+            };
+            videoTitle.textContent = info.title;
+
+            if (info.duration) {
+                videoDuration.textContent = `時長: ${formatDuration(info.duration)} | 上傳者: ${info.uploader || '未知'}`;
+            }
+
+            downloadBtn.href = downloadUrl;
+            downloadBtn.textContent = '下載 MP3';
+
+            videoInfo.classList.add('show');
+        }
+
+        // 主要轉換函數
+        async function convertToMp3() {
+            const urlInput = document.getElementById('url');
+            const convertBtn = document.getElementById('convertBtn');
+            const videoInfo = document.getElementById('videoInfo');
+            const url = urlInput.value.trim();
+
+            // 隱藏之前的結果
+            videoInfo.classList.remove('show');
+
+            // 驗證輸入
+            if (!url) {
+                showStatus('error', '請輸入 YouTube 影片連結');
+                return;
+            }
+
+            if (!isValidYoutubeUrl(url)) {
+                showStatus('error', '請輸入有效的 YouTube 連結');
+                return;
+            }
+
+            // 禁用按鈕
+            convertBtn.disabled = true;
+            convertBtn.textContent = '處理中...';
+
+            try {
+                // 步驟 1: 獲取影片資訊
+                showStatus('loading', '正在獲取影片資訊...');
+
+                const infoResponse = await fetch(`${API_BASE}/api/info`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const infoData = await infoResponse.json();
+
+                if (!infoResponse.ok) {
+                    throw new Error(infoData.error || '無法獲取影片資訊');
+                }
+
+                // 步驟 2: 開始轉換
+                showStatus('loading', '正在轉換為 MP3，請稍候...');
+
+                const convertResponse = await fetch(`${API_BASE}/api/convert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const convertData = await convertResponse.json();
+
+                if (!convertResponse.ok) {
+                    throw new Error(convertData.error || '轉換失敗');
+                }
+
+                // 步驟 3: 顯示結果
+                showStatus('success', '轉換完成！請點擊下方按鈕下載');
+
+                const downloadUrl = `${API_BASE}/api/download/${encodeURIComponent(convertData.filename)}`;
+                showVideoInfo(infoData.info, downloadUrl);
+
+            } catch (error) {
+                showStatus('error', error.message);
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = '開始轉換';
+            }
+        }
+
+        // 監聽 Enter 鍵
+        document.getElementById('url').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertToMp3();
+            }
+        });
+
+        // 自動貼上剪貼簿內容（如果是 YouTube 連結）
+        document.getElementById('url').addEventListener('focus', async function() {
+            if (this.value) return;
+
+            try {
+                const text = await navigator.clipboard.readText();
+                if (isValidYoutubeUrl(text)) {
+                    this.value = text;
+                }
+            } catch (e) {
+                // 剪貼簿存取被拒絕，忽略錯誤
+            }
+        });
+    </script>
+</body>
+</html>
