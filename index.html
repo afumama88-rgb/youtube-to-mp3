@@ -397,15 +397,15 @@
                 const data = await response.json();
                 const title = data.title || 'YouTube 影片';
 
-                // 使用第三方轉換服務
-                const downloadUrl = `https://cnvmp3.com/download.php?url=${encodeURIComponent(url)}`;
+                // 使用 y2mate 轉換服務
+                const downloadUrl = `https://www.y2mate.com/youtube-mp3/${videoId}`;
 
                 showStatus('success', '已找到影片！點擊下方按鈕前往下載');
                 showVideoInfo(videoId, title, downloadUrl);
 
             } catch (error) {
                 // 即使獲取標題失敗，仍然可以提供下載連結
-                const downloadUrl = `https://cnvmp3.com/download.php?url=${encodeURIComponent(url)}`;
+                const downloadUrl = `https://www.y2mate.com/youtube-mp3/${videoId}`;
                 showStatus('success', '已找到影片！點擊下方按鈕前往下載');
                 showVideoInfo(videoId, 'YouTube 影片', downloadUrl);
             } finally {
