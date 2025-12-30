@@ -340,24 +340,35 @@
             }
         }
 
+        // 格式化時長
+        function formatDuration(seconds) {
+            if (!seconds) return '';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
         // 顯示影片資訊
-        function showVideoInfo(videoId, title, downloadUrl) {
+        function showVideoInfo(info, downloadUrl) {
             const videoInfo = document.getElementById('videoInfo');
             const thumbnail = document.getElementById('thumbnail');
             const videoTitle = document.getElementById('videoTitle');
             const videoDuration = document.getElementById('videoDuration');
             const downloadBtn = document.getElementById('downloadBtn');
 
-            thumbnail.src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+            thumbnail.src = info.thumbnail;
             thumbnail.onerror = function() {
-                this.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                this.src = `https://img.youtube.com/vi/${info.id}/hqdefault.jpg`;
             };
-            videoTitle.textContent = title;
-            videoDuration.textContent = '點擊下方按鈕前往轉換頁面';
+            videoTitle.textContent = info.title;
+
+            if (info.duration) {
+                videoDuration.textContent = `時長: ${formatDuration(info.duration)} | 上傳者: ${info.uploader || '未知'}`;
+            }
 
             downloadBtn.href = downloadUrl;
-            downloadBtn.target = '_blank';
-            downloadBtn.textContent = '前往下載 MP3';
+            downloadBtn.removeAttribute('target');
+            downloadBtn.textContent = '下載 MP3';
 
             videoInfo.classList.add('show');
         }
@@ -383,38 +394,56 @@
                 return;
             }
 
-            const videoId = extractVideoId(url);
-
             // 禁用按鈕
             convertBtn.disabled = true;
             convertBtn.textContent = '處理中...';
 
-            showStatus('loading', '正在獲取影片資訊...');
-
             try {
-                // 使用 noembed 獲取影片標題
-                const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-                const data = await response.json();
-                const title = data.title || 'YouTube 影片';
+                // 步驟 1: 獲取影片資訊
+                showStatus('loading', '正在獲取影片資訊...');
 
-                // 使用 y2mate 轉換服務
-                const downloadUrl = `https://www.y2mate.com/youtube-mp3/${videoId}`;
+                const infoResponse = await fetch('/api/info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
 
-                showStatus('success', '已找到影片！點擊下方按鈕前往下載');
-                showVideoInfo(videoId, title, downloadUrl);
+                const infoData = await infoResponse.json();
+
+                if (!infoResponse.ok) {
+                    throw new Error(infoData.error || '無法獲取影片資訊');
+                }
+
+                // 步驟 2: 開始轉換
+                showStatus('loading', '正在轉換為 MP3，請稍候（可能需要 1-2 分鐘）...');
+
+                const convertResponse = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const convertData = await convertResponse.json();
+
+                if (!convertResponse.ok) {
+                    throw new Error(convertData.error || '轉換失敗');
+                }
+
+                // 步驟 3: 顯示結果
+                showStatus('success', '轉換完成！請點擊下方按鈕下載');
+
+                const downloadUrl = `/api/download/${encodeURIComponent(convertData.filename)}`;
+                showVideoInfo(infoData.info, downloadUrl);
 
             } catch (error) {
-                // 即使獲取標題失敗，仍然可以提供下載連結
-                const downloadUrl = `https://www.y2mate.com/youtube-mp3/${videoId}`;
-                showStatus('success', '已找到影片！點擊下方按鈕前往下載');
-                showVideoInfo(videoId, 'YouTube 影片', downloadUrl);
+                showStatus('error', error.message);
             } finally {
                 convertBtn.disabled = false;
                 convertBtn.textContent = '開始轉換';
             }
         }
 
-        // 監聯 Enter 鍵
+        // 監聽 Enter 鍵
         document.getElementById('url').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 convertToMp3();

@@ -181,8 +181,9 @@ def download_file(filename):
 
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8080))
     print("=" * 50)
     print("YouTube 轉 MP3 服務已啟動")
-    print("請在瀏覽器開啟: http://127.0.0.1:8080")
+    print(f"請在瀏覽器開啟: http://127.0.0.1:{port}")
     print("=" * 50)
-    app.run(debug=True, host='127.0.0.1', port=8080)
+    app.run(debug=False, host='0.0.0.0', port=port)
